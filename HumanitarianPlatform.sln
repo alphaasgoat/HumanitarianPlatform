@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C907E658-F587-487A-8664-15DCD9D19AAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Humanitarian.Domain", "src\Humanitarian.Domain\Humanitarian.Domain.csproj", "{8B2803F6-61A7-46F5-A766-8F64F97ECF9E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Humanitarian.Application", "src\Humanitarian.Application\Humanitarian.Application.csproj", "{8433AAAF-88EA-4386-A08A-F19B1A3A0EB1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Humanitarian.Infrastructure", "src\Humanitarian.Infrastructure\Humanitarian.Infrastructure.csproj", "{B8F623F8-1E1F-44AF-A19B-D003943634CB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Humanitarian.Api", "src\Humanitarian.Api\Humanitarian.Api.csproj", "{D6768196-004C-4248-87DD-53565BEBCDDE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0D5C8004-A25E-41EA-840C-584D64243CC5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Humanitarian.Tests", "tests\Humanitarian.Tests\Humanitarian.Tests.csproj", "{ED64F2C7-E7CE-48A7-A203-743A32420F71}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8B2803F6-61A7-46F5-A766-8F64F97ECF9E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B2803F6-61A7-46F5-A766-8F64F97ECF9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B2803F6-61A7-46F5-A766-8F64F97ECF9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B2803F6-61A7-46F5-A766-8F64F97ECF9E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8433AAAF-88EA-4386-A08A-F19B1A3A0EB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8433AAAF-88EA-4386-A08A-F19B1A3A0EB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8433AAAF-88EA-4386-A08A-F19B1A3A0EB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8433AAAF-88EA-4386-A08A-F19B1A3A0EB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8F623F8-1E1F-44AF-A19B-D003943634CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8F623F8-1E1F-44AF-A19B-D003943634CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8F623F8-1E1F-44AF-A19B-D003943634CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8F623F8-1E1F-44AF-A19B-D003943634CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6768196-004C-4248-87DD-53565BEBCDDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6768196-004C-4248-87DD-53565BEBCDDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6768196-004C-4248-87DD-53565BEBCDDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6768196-004C-4248-87DD-53565BEBCDDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED64F2C7-E7CE-48A7-A203-743A32420F71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED64F2C7-E7CE-48A7-A203-743A32420F71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED64F2C7-E7CE-48A7-A203-743A32420F71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED64F2C7-E7CE-48A7-A203-743A32420F71}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8B2803F6-61A7-46F5-A766-8F64F97ECF9E} = {C907E658-F587-487A-8664-15DCD9D19AAF}
+		{8433AAAF-88EA-4386-A08A-F19B1A3A0EB1} = {C907E658-F587-487A-8664-15DCD9D19AAF}
+		{B8F623F8-1E1F-44AF-A19B-D003943634CB} = {C907E658-F587-487A-8664-15DCD9D19AAF}
+		{D6768196-004C-4248-87DD-53565BEBCDDE} = {C907E658-F587-487A-8664-15DCD9D19AAF}
+		{ED64F2C7-E7CE-48A7-A203-743A32420F71} = {0D5C8004-A25E-41EA-840C-584D64243CC5}
+	EndGlobalSection
+EndGlobal
