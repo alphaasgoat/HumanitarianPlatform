@@ -10,6 +10,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CrisisEvent> CrisisEvents => Set<CrisisEvent>();
     public DbSet<OperationalArea> OperationalAreas => Set<OperationalArea>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
+    public DbSet<AssistanceRequest> AssistanceRequests => Set<AssistanceRequest>();
+    public DbSet<AiRecommendation> AiRecommendations => Set<AiRecommendation>();
+    public DbSet<RequestHistory> RequestHistories => Set<RequestHistory>();
+    public DbSet<DuplicateLink> DuplicateLinks => Set<DuplicateLink>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -59,5 +63,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.CreatedAtUtc);
             e.HasIndex(x => new { x.EntityType, x.EntityId });
         });
+
+        // Module configurations (requests, ...) live in Persistence/Configurations.
+        b.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }

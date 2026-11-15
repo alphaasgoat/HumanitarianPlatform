@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICrisisService, CrisisService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
+        services.AddRequestsModule();
         return services;
     }
 }
