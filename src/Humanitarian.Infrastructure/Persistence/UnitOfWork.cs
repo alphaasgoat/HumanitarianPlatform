@@ -1,5 +1,6 @@
 using Humanitarian.Application.Common;
 using Humanitarian.Domain.Common;
+using Microsoft.EntityFrameworkCore;
 
 namespace Humanitarian.Infrastructure.Persistence;
 
@@ -14,7 +15,18 @@ public class UnitOfWork(AppDbContext db) : IUnitOfWork
         return (IRepository<T>)repo;
     }
 
-    public Task<int> SaveChangesAsync(CancellationToken ct = default) => db.SaveChangesAsync(ct);
+    public async Task<int> SaveChangesAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Someone else changed the same row (e.g. reserved the last units). The API returns 409.
+            throw new ConflictException("The data was changed by someone else at the same time. Please reload and try again.");
+        }
+    }
 
     public async Task ExecuteInTransactionAsync(Func<Task> work, CancellationToken ct = default)
     {

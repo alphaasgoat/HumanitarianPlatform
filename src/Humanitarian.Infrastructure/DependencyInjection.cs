@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ICrisisService, CrisisService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddRequestsModule();
+        services.AddPlatformModules(); // feature modules (resources, ...) register themselves
         return services;
     }
 }
