@@ -27,8 +27,12 @@ public interface IVolunteerTaskService
 /// A volunteer sees and answers only their own assignments.
 /// </summary>
 public class VolunteerTaskService(
-    IUnitOfWork uow, IAuditService audit, ICurrentUser current, TimeProvider time, IVolunteerMatcher matcher) : IVolunteerTaskService
+    IUnitOfWork uow, IAuditService audit, ICurrentUser current, TimeProvider time, IVolunteerMatcher matcher,
+    IDomainEventPublisher? events = null) : IVolunteerTaskService
 {
+    // Optional collaborator: without it nothing is published (existing behaviour).
+    private IDomainEventPublisher Events => events ?? NullDomainEventPublisher.Instance;
+
     private DateTime Now => time.GetUtcNow().UtcDateTime;
     private bool CanCoordinate => current.Role is Roles.VolunteerCoordinator or Roles.EmergencyCoordinator;
     private bool CanView => CanCoordinate || current.Role == Roles.CaseManager;
@@ -180,6 +184,8 @@ public class VolunteerTaskService(
             CreatedAtUtc = now
         };
         await uow.Repository<TaskAssignment>().AddAsync(assignment, ct);
+        await Events.PublishAsync(new VolunteerAssigned(
+            assignment.Id, volunteer.UserId, task.Id, task.Title, task.StartUtc, task.EndUtc), ct);
 
         var completed = taskAssignments.Count(a => a.Status == AssignmentStatus.Completed);
         if (active.Count + 1 + completed >= task.VolunteersNeeded) task.Status = VolunteerTaskStatus.Filled;

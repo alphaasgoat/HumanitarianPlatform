@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 using Humanitarian.Application.Common;
+using Humanitarian.Application.Mapping;
 using Humanitarian.Application.Requests.Ai;
 using Humanitarian.Application.Requests.Duplicates;
 using Humanitarian.Domain.Entities;
@@ -29,8 +30,12 @@ public interface IAssistanceRequestService
 /// </summary>
 public class AssistanceRequestService(
     IUnitOfWork uow, IAuditService audit, ICurrentUser current, TimeProvider time,
-    IRequestAnalyzer analyzer, IDuplicateDetector detector) : IAssistanceRequestService
+    IRequestAnalyzer analyzer, IDuplicateDetector detector,
+    IMappingService? mapping = null, IDomainEventPublisher? events = null) : IAssistanceRequestService
 {
+    // Optional collaborators: without them the service behaves exactly as before (no geocoding, no events).
+    private IDomainEventPublisher Events => events ?? NullDomainEventPublisher.Instance;
+
     private static readonly TimeSpan DuplicateWindow = TimeSpan.FromHours(72);
     private DateTime Now => time.GetUtcNow().UtcDateTime;
 
@@ -58,6 +63,34 @@ public class AssistanceRequestService(
         if (dto.Latitude.HasValue != dto.Longitude.HasValue)
             throw new AppValidationException("Latitude and longitude must be provided together.");
 
+        // Location capture: an address without coordinates is looked up by the external map service. If that service is
+        // unavailable the request is still accepted (without coordinates) and the history says so. This runs before
+        // anything is staged because the mapping service saves its own lookup cache.
+        var latitude = dto.Latitude;
+        var longitude = dto.Longitude;
+        string? locationNote = null;
+        if (latitude is null && !string.IsNullOrWhiteSpace(dto.AddressText) && mapping is not null)
+        {
+            try
+            {
+                var located = await mapping.GeocodeAsync(dto.AddressText, ct);
+                if (located is { Found: true, Latitude: not null, Longitude: not null })
+                {
+                    latitude = located.Latitude;
+                    longitude = located.Longitude;
+                    locationNote = $"Location worked out from the address ({located.Source}).";
+                }
+                else
+                {
+                    locationNote = "The address could not be located automatically; staff may need to contact the requester.";
+                }
+            }
+            catch (AppValidationException)
+            {
+                locationNote = "The address could not be located automatically; staff may need to contact the requester.";
+            }
+        }
+
         var now = Now;
         var request = new AssistanceRequest
         {
@@ -67,8 +100,8 @@ public class AssistanceRequestService(
             Category = dto.Category,
             Description = dto.Description.Trim(),
             PeopleAffected = dto.PeopleAffected,
-            Latitude = dto.Latitude,
-            Longitude = dto.Longitude,
+            Latitude = latitude,
+            Longitude = longitude,
             AddressText = dto.AddressText,
             DeclaredUrgency = dto.DeclaredUrgency,
             Urgency = dto.DeclaredUrgency,
@@ -77,6 +110,8 @@ public class AssistanceRequestService(
         };
         await requests.AddAsync(request, ct);
         await AddHistoryAsync(request.Id, "Submitted", null, RequestStatus.Submitted, null, true, ct);
+        if (locationNote is not null)
+            await AddHistoryAsync(request.Id, "LocationChecked", null, null, locationNote, false, ct);
 
         // AI recommendation (falls back automatically if the AI service is unavailable)
         var analysis = await analyzer.AnalyzeAsync(ToInput(request), ct);
@@ -112,6 +147,8 @@ public class AssistanceRequestService(
         request.Status = RequestStatus.UnderReview;
         await AddHistoryAsync(request.Id, "UnderReview", RequestStatus.Submitted, RequestStatus.UnderReview,
             null, true, ct);
+        await Events.PublishAsync(new RequestStatusChanged(
+            Guid.NewGuid(), request.Id, request.RequesterId, RequestStatus.Submitted, RequestStatus.UnderReview), ct);
         await audit.RecordAsync("RequestSubmitted", nameof(AssistanceRequest), request.Id.ToString(),
             $"Category={request.Category}; DeclaredUrgency={request.DeclaredUrgency}; People={request.PeopleAffected}", ct: ct);
 
@@ -278,6 +315,9 @@ public class AssistanceRequestService(
 
         await AddHistoryAsync(request.Id, $"Recommendation{newRecStatus}", previousStatus, request.Status, note,
             changesRequest, ct);
+        if (request.Status != previousStatus)
+            await Events.PublishAsync(new RequestStatusChanged(
+                Guid.NewGuid(), request.Id, request.RequesterId, previousStatus, request.Status), ct);
 
         // Audit record: recommendation, confidence, human action and timestamp (advanced requirement 2).
         var details = JsonSerializer.Serialize(new
@@ -318,6 +358,8 @@ public class AssistanceRequestService(
 
         var cleanNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
         await AddHistoryAsync(id, "Escalated", previous, RequestStatus.Escalated, cleanNote, false, ct);
+        await Events.PublishAsync(new RequestStatusChanged(
+            Guid.NewGuid(), request.Id, request.RequesterId, previous, RequestStatus.Escalated), ct);
         await audit.RecordAsync("RequestEscalated", nameof(AssistanceRequest), id.ToString(), cleanNote, ct: ct);
         await uow.SaveChangesAsync(ct);
         return await BuildDetailAsync(request, true, ct);
@@ -361,6 +403,8 @@ public class AssistanceRequestService(
 
         await AddHistoryAsync(id, "MergedIntoAnotherRequest", previous, RequestStatus.Merged, note, true, ct);
         await AddHistoryAsync(target.Id, "DuplicateMergedIn", null, null, $"Request {id} merged into this one.", false, ct);
+        await Events.PublishAsync(new RequestStatusChanged(
+            Guid.NewGuid(), request.Id, request.RequesterId, previous, RequestStatus.Merged), ct);
         await audit.RecordAsync("RequestMerged", nameof(AssistanceRequest), id.ToString(),
             JsonSerializer.Serialize(new { mergedRequestId = id, intoRequestId = target.Id, note }), ct: ct);
 
@@ -404,6 +448,8 @@ public class AssistanceRequestService(
 
         var cleanNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
         await AddHistoryAsync(id, "Closed", previous, RequestStatus.Closed, cleanNote, true, ct);
+        await Events.PublishAsync(new RequestStatusChanged(
+            Guid.NewGuid(), request.Id, request.RequesterId, previous, RequestStatus.Closed), ct);
         await audit.RecordAsync("RequestClosed", nameof(AssistanceRequest), id.ToString(), cleanNote, ct: ct);
         await uow.SaveChangesAsync(ct);
         return await BuildDetailAsync(request, true, ct);
