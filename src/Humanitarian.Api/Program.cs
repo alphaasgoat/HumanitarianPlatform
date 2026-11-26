@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Humanitarian.Api.Middleware;
+using Humanitarian.Api.Workers;
 using Humanitarian.Application.Common;
 using Humanitarian.Infrastructure;
 using Humanitarian.Infrastructure.Persistence;
@@ -50,7 +51,12 @@ builder.Services.AddRateLimiter(o =>
         RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 300, Window = TimeSpan.FromMinutes(1) }));
     o.AddFixedWindowLimiter("auth", x => { x.PermitLimit = 10; x.Window = TimeSpan.FromMinutes(1); });
+    // Protects the external mapping provider (its public servers allow only light use).
+    o.AddFixedWindowLimiter("maps", x => { x.PermitLimit = 30; x.Window = TimeSpan.FromMinutes(1); });
 });
+
+// ---- Background worker that sends queued notifications (e-mail / SMS) with retries ----
+builder.Services.AddHostedService<NotificationWorker>();
 
 // ---- CORS for the React dev client ----
 var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:5173"];

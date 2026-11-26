@@ -31,8 +31,12 @@ public interface IShelterService
 /// people cannot fill the last bed at the same moment.
 /// </summary>
 public class ShelterService(
-    IUnitOfWork uow, IAuditService audit, ICurrentUser current, TimeProvider time, IShelterMatcher matcher) : IShelterService
+    IUnitOfWork uow, IAuditService audit, ICurrentUser current, TimeProvider time, IShelterMatcher matcher,
+    IDomainEventPublisher? events = null) : IShelterService
 {
+    // Optional collaborator: without it nothing is published (existing behaviour).
+    private IDomainEventPublisher Events => events ?? NullDomainEventPublisher.Instance;
+
     private DateTime Now => time.GetUtcNow().UtcDateTime;
     private bool CanManage => current.Role is Roles.ShelterAdministrator or Roles.EmergencyCoordinator;
     private bool CanView => CanManage || current.Role == Roles.CaseManager;
@@ -217,6 +221,8 @@ public class ShelterService(
         await allocations.AddAsync(allocation, ct);
 
         await AddHistoryAsync(request.Id, "ShelterAllocated", $"{people} people placed in {shelter.Name}", true, ct);
+        await Events.PublishAsync(new ShelterPlacementMade(
+            allocation.Id, request.Id, request.RequesterId, shelter.Name, shelter.Address, people), ct);
         await audit.RecordAsync("ShelterAllocated", nameof(AssistanceRequest), request.Id.ToString(),
             JsonSerializer.Serialize(new
             {
